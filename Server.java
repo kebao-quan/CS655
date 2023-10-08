@@ -1,27 +1,24 @@
 import java.net.*;
 import java.io.*;
+import java.util.Scanner;
 
 
 public class Server{
 	public static void main(String [] args) throws IOException{
-		if (args.length != 1) {
-			System.err.println("Usage: java EchoServer <port number>");
-			System.exit(1);
+		String user_enter;
+		System.out.println("Please enter the port number of Server>");
+		Scanner sc = new Scanner(System.in);
+		user_enter = sc.next();
+		int portnumber = Integer.parseInt(user_enter);
+		System.out.println("your portnumber is: "+portnumber);
+
+		ServerSocket serverSocket = new ServerSocket(portnumber);
+		while (true) {
+			Socket clientSocket = serverSocket.accept();
+
+			//Accept new client request. Serve request with new thread.
+			new ClientHandler(clientSocket).start();
 		}
-
-		int portNumber = Integer.parseInt(args[0]);
-
-		try (ServerSocket serverSocket = new ServerSocket(portNumber)) {
-			while (true) {
-				Socket clientSocket = serverSocket.accept();
-
-				//Accept new client request. Serve request with new thread.
-				new ClientHandler(clientSocket).start();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
 	}
 }
 
@@ -40,7 +37,7 @@ class ClientHandler extends Thread {
 		) {
 			String inputLine;
 			while ((inputLine = in.readLine()) != null) {
-				String[] tokens = inputLine.split("\\s+");
+				String[] tokens = inputLine.split("\t");
 
 				//s: <PROTOCOL PHASE><WS><MEASUREMENT TYPE><WS><NUMBER OF PROBES><WS><MESSAGE SIZE><WS><SERVER DELAY>\n
 				//m: <PROTOCOL PHASE><WS><PROBE SEQUENCE NUMBER><WS><PAYLOAD>\n
@@ -58,17 +55,17 @@ class ClientHandler extends Thread {
 				System.out.println("SERVER DELAY: " + serverDelay);
 
 
-				if (
-						"s".equalsIgnoreCase(protocolPhase)
-								&& ("rtt".equalsIgnoreCase(measurementType) || "tput".equalsIgnoreCase(measurementType))
-								&& (numOfProbes > 0)
-								&& (messageSize > 0)
-								&& (serverDelay >= 0)
+				if ("s".equalsIgnoreCase(protocolPhase)
+						&& ("rtt".equalsIgnoreCase(measurementType) || "tput".equalsIgnoreCase(measurementType))
+						&& (numOfProbes > 0)
+						&& (messageSize > 0)
+						&& (serverDelay >= 0)
 				) {
 					out.println("200 OK: Ready");
 					for (int i = 0; i < numOfProbes; i++) {
 						String probeInput = in.readLine();
-						String[] probeMessage = probeInput.split("\\s+");
+						System.out.println("probeInput = "+probeInput);
+						String[] probeMessage = probeInput.split("\\s");
 						String pPhase = probeMessage[0];
 						int suqNum = Integer.parseInt(probeMessage[1]);
 						String payload = probeMessage[2];
@@ -90,6 +87,18 @@ class ClientHandler extends Thread {
 
 
 					}
+
+					inputLine = in.readLine();
+					if (!"t".equalsIgnoreCase(inputLine)) {
+						out.println("404 ERROR: Invalid Connection Termination Message");
+						clientSocket.close();
+						return;
+					}
+
+					out.println("200 OK: Closing Connection");
+					clientSocket.close();
+					return;
+
 				} else {
 					out.println("404 ERROR: Invalid Connection Setup Message");
 					clientSocket.close();
