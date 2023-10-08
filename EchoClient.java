@@ -17,7 +17,6 @@ public class EchoClient {
                 Socket echoSocket = new Socket(hostname, portnumber);
                 PrintWriter out = new PrintWriter(echoSocket.getOutputStream(), true);
                 BufferedReader in = new BufferedReader(new InputStreamReader(echoSocket.getInputStream()));
-                BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
         ) {
             String userInput;
             Scanner sc3 = new Scanner(System.in);
